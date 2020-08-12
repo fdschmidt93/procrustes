@@ -1,0 +1,37 @@
+# Dictionaries: Vulic et al, Do we really need fully unsupervised embeddings?, https://arxiv.org/abs/1909.01638
+# Embeddings: fastText on CommonCrawl and Wikipedia, fasttext.cc
+2020-08-12 12:54:20,667 ============ Config
+2020-08-12 12:54:20,667 train_dico: /work/fabiasch/WeakSupMT/third-party/other/mapping/dictionaries/vulic/ko-eo/ko-eo.train.5000.cc.trans
+2020-08-12 12:54:20,667 src_input: /work/fabiasch/WeakSupMT/third-party/other/mapping/embeddings/cc/cc.ko.300.vec
+2020-08-12 12:54:20,667 trg_input: /work/fabiasch/WeakSupMT/third-party/other/mapping/embeddings/cc/cc.eo.300.vec
+2020-08-12 12:54:20,667 src_output: None
+2020-08-12 12:54:20,667 trg_output: None
+2020-08-12 12:54:20,667 vocab_limit: 200000
+2020-08-12 12:54:20,667 lower_case: False
+2020-08-12 12:54:20,668 dico_delimiter: 	
+2020-08-12 12:54:20,668 eval_dico: /work/fabiasch/WeakSupMT/third-party/other/mapping/dictionaries/vulic/ko-eo/ko-eo.test.2000.cc.trans
+2020-08-12 12:54:20,668 write_dico: None
+2020-08-12 12:54:20,668 self_learning: 10
+2020-08-12 12:54:20,668 iter_norm: False
+2020-08-12 12:54:20,668 vocab_cutoff: [5000]
+2020-08-12 12:54:20,668 log: ko-eo
+2020-08-12 12:54:44,180 ============ Data Summary
+2020-08-12 12:54:44,181 Source language tokens: 200000
+2020-08-12 12:54:44,181 Target language tokens: 200000
+2020-08-12 12:54:44,189 Evaluation pairs: 2000
+2020-08-12 12:54:44,205 ============ Self-Learning Dictionaries for 10 Iterations
+2020-08-12 12:54:46,404 Iteration 1 - Dictionary Size: 5223
+2020-08-12 12:54:46,763 Iteration 2 - Dictionary Size: 5278
+2020-08-12 12:54:47,126 Iteration 3 - Dictionary Size: 5298
+2020-08-12 12:54:47,487 Iteration 4 - Dictionary Size: 5305
+2020-08-12 12:54:47,854 Iteration 5 - Dictionary Size: 5313
+2020-08-12 12:54:48,222 Iteration 6 - Dictionary Size: 5318
+2020-08-12 12:54:48,616 Iteration 7 - Dictionary Size: 5321
+2020-08-12 12:54:48,993 Iteration 8 - Dictionary Size: 5328
+2020-08-12 12:54:49,376 Iteration 9 - Dictionary Size: 5330
+2020-08-12 12:54:49,755 Iteration 10 - Dictionary Size: 5334
+2020-08-12 12:55:29,872 ============ Evaluation
+2020-08-12 12:55:31,752 MRR: 0.091
+2020-08-12 12:55:31,752 HITS@1: 0.046
+2020-08-12 12:55:31,752 HITS@5: 0.126
+2020-08-12 12:55:31,753 HITS@10: 0.177
