@@ -47,4 +47,4 @@ def procrustes(x: np.ndarray, y: np.ndarray):
     :param y np.ndarray: stacked in-dico word embeddings of trg lang
     """
     u, _, vt = np.linalg.svd(x.T @ y, full_matrices=False)
-    return u, vt.T
+    return (u @ vt).T

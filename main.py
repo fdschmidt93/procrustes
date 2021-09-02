@@ -93,22 +93,22 @@ def load_data(args) -> dict:
         logging.info(f"Evaluation pairs: {len(data['eval_dico'].pairs)}")
     return data
 
-# EXPERIMENTAL FEATURE; currently not in use
-def validate_eval(data: dict) -> dict:
-    """Check that median squared error within dictionary itself has improved."""
-    if 'dico_loss'not in data:
-        x_w = data['dico'].src_emb
-        z_w = data['dico'].trg_emb
-        data['dico_loss'] = scaled_argmin(x_w, z_w)
-    x_w = data['dico'].src_emb @ data['u']
-    z_w = data['dico'].trg_emb @ data['v']
-    loss = scaled_argmin(x_w, z_w)
-    if loss < data['dico_loss']:
-        data['u_argmin'] = data['u'].copy()
-        data['v_argmin'] = data['v'].copy()
-        data['dico_loss'] = loss
-        # print('New argmin', round(loss, 4))
-    return data
+# # EXPERIMENTAL FEATURE; currently not in use
+# def validate_eval(data: dict) -> dict:
+#     """Check that median squared error within dictionary itself has improved."""
+#     if 'dico_loss'not in data:
+#         x_w = data['dico'].src_emb
+#         z_w = data['dico'].trg_emb
+#         data['dico_loss'] = scaled_argmin(x_w, z_w)
+#     x_w = data['dico'].src_emb
+#     z_w = data['dico'].trg_emb @ data['map']
+#     loss = scaled_argmin(x_w, z_w)
+#     if loss < data['dico_loss']:
+#         data['u_argmin'] = data['u'].copy()
+#         data['v_argmin'] = data['v'].copy()
+#         data['dico_loss'] = loss
+#         # print('New argmin', round(loss, 4))
+#     return data
 
 def iteration(data: dict, args: argparse.Namespace, it: int) -> dict:
     """Perform self-learning iteration. See Vulic et al, 2019, for details."""
@@ -120,15 +120,15 @@ def iteration(data: dict, args: argparse.Namespace, it: int) -> dict:
     #     procrustes: SVD of x.T @ z for which u and v are returned
     x = data['dico'].src_emb
     z = data['dico'].trg_emb
-    data['u'], data['v'] = procrustes(x, z)
+    data['map'] = procrustes(x, z)
 
     # (3) map embeddings of to joint space, post-process and select top vocab
     data['vocab_cutoff'] = args.vocab_cutoff[min(len(args.vocab_cutoff)-1, it)]
-    x_w = data['src'].emb[:data['vocab_cutoff']] @ data['u']
-    z_w = data['trg'].emb[:data['vocab_cutoff']] @ data['v']
+    x = data['src'].emb[:data['vocab_cutoff']]
+    z_w = data['trg'].emb[:data['vocab_cutoff']] @ data['map']
 
     # (4) extend dictionary with mutual NN
-    P = pw_cosine_similarity(x_w, z_w)
+    P = pw_cosine_similarity(x, z_w)
     src_idx, trg_idx = mutual_nn(src_argmax=P.argmax(1), trg_argmax=P.argmax(0))
     src_mnn = [data['src'].id2word[idx] for idx in src_idx]
     trg_mnn = [data['trg'].id2word[idx] for idx in trg_idx]
@@ -143,19 +143,20 @@ def candidates_expansion(rankings: np.ndarray, data: dict) -> np.ndarray:
     """Perform evaluation reduction for dictionaries with duplicate terms, e.g. MUSE"""
     # get row indices of duplicate source terms
     duplicates = list_duplicates(data['eval_dico'].src_tokens)
-    tokens, pointers = zip(*duplicates)
-    # collapse binary indicators of rows:
-    # max. since nearest neighbours are solely binary indicators
-    for idx in pointers:
-        rankings[idx] = rankings[idx].max(0)
+    if len(duplicates) > 0:
+        _, pointers = zip(*duplicates)
+        # collapse binary indicators of rows:
+        # max. since nearest neighbours are solely binary indicators
+        for idx in pointers:
+            rankings[idx] = rankings[idx].max(0)
     return rankings
 
 def evaluate(data: dict):
     """Evaluate source language against target vocabulary."""
     ref_idx = [data['trg'].word2id[tok] for tok in data['eval_dico'].trg_tokens]
     data['eval_dico'].update_embeddings(data['src'], data['trg'])
-    x_w = data['eval_dico'].src_emb @ data['u']
-    z_w = data['trg'].emb @ data['v']
+    x_w = data['eval_dico'].src_emb
+    z_w = data['trg'].emb @ data['map']
     P = pw_cosine_similarity(x_w, z_w)
     rankings = argsort(P, ref_idx)
     # check that duplicates in src language are properly matched
@@ -168,15 +169,17 @@ def evaluate(data: dict):
 
 def map_embeddings(data: dict, args: argparse.Namespace):
     """Map and write source and target embeddings."""
-    data['src'].emb = data['src'].emb @ data['u']
-    data['trg'].emb = data['trg'].emb @ data['v']
-    data['src'].write(args.src_output)
-    data['trg'].write(args.trg_output)
+    data['src'].emb = data['src'].emb
+    data['trg'].emb = data['trg'].emb @ data['map']
+    if args.src_output is not None:
+        data['src'].write(args.src_output)
+    if args.trg_output is not None:
+        data['trg'].write(args.trg_output)
 
 def write_dico(data: dict, args: argparse.Namespace):
     """Write dictionaries to file. incl-prefix includes pairs from self-learning iterations."""
-    x_w = data['src'].emb[:data['vocab_cutoff']] @ data['u']
-    z_w = data['trg'].emb[:data['vocab_cutoff']] @ data['v']
+    x_w = data['src'].emb[:data['vocab_cutoff']]
+    z_w = data['trg'].emb[:data['vocab_cutoff']] @ data['map']
     P = pw_cosine_similarity(x_w, z_w)
     src_idx, trg_idx = mutual_nn(src_argmax=P.argmax(1), trg_argmax=P.argmax(0))
     src_mnn = [data['src'].id2word[idx] for idx in src_idx]
@@ -211,7 +214,7 @@ def main():
         evaluate(data)
     if args.write_dico:
         write_dico(data, args)
-    if args.src_output and args.trg_output:
+    if args.src_output or args.trg_output:
         map_embeddings(data, args)
         logging.info('============ Embeddings mapped and written to disk')
 
